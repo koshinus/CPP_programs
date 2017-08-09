@@ -18,9 +18,11 @@
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <thread>
+#include <mutex>
 using namespace boost::asio;
 const size_t BUF_SIZE = 20;
 using sock = ip::tcp::socket;
+extern std::mutex m;
 
 
 

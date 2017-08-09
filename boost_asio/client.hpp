@@ -10,8 +10,8 @@ public:
 private:
     void start_read(size_t, size_t);
     void start_write(size_t, size_t);
-    std::string msg;
-    boost::shared_ptr<sock> sock_;
-    ip::tcp::endpoint endp;
-    char buf[BUF_SIZE + 1];
+    char                        buf[BUF_SIZE + 1];
+    std::string                 msg;
+    boost::shared_ptr<sock>     sock_;
+    ip::tcp::endpoint           endp;
 };

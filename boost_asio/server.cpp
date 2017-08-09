@@ -1,7 +1,5 @@
 #include "stdafx.h"
 #include "server.hpp"
-#include <thread>
-#include <mutex>
 
 echo_server::echo_server(io_service &service) :
     started(false),
@@ -10,8 +8,7 @@ echo_server::echo_server(io_service &service) :
     acc(service, endp),
     service(service)
     {
-        std::thread t([&service]() { service.run(); });
-        t.join();
+        acc.set_option(ip::tcp::acceptor::reuse_address(true));
         start_accept();
     };
 
@@ -21,66 +18,80 @@ void echo_server::start_accept()
         started = true;
     if (service.stopped())
         service.reset();
-    connection con_(acc.get_io_service());
-    connection_id++;
-    connections.insert(std::make_pair(connection_id, con_));
-    acc.async_accept(*con_.sock_ptr, endp, 
-                        [this](const boost::system::error_code &ec)
-                        { 
-                            if (!ec)
-                            {
-                                start_read(connection_id);
-                                start_accept();
-                            }
-                        });
+    connection con_(service);
+    connections.insert(std::make_pair(++connection_id, con_));
+    acc.async_accept(*con_.sock_ptr, endp,
+            [this](const boost::system::error_code &ec)
+            { 
+                if (ec)
+                {
+                    m.lock();
+                    std::cerr << "Server accepting error: " << ec << std::endl;
+                    m.unlock();
+                    return;
+                }
+                start_read(connection_id);
+                start_accept();
+            });
 };
 
 void echo_server::start_read(size_t id)
 {
-    if (!started) 
+    
+    if (!started)
         return;
-    size_t availible = connections[id].sock_ptr->available();
-    size_t need_to_read = (availible > BUF_SIZE)? BUF_SIZE : availible;
-    connections[id].buf[need_to_read] = '\0';
-    connections[id].sock_ptr->async_read_some(buffer(connections[id].buf, need_to_read),
-                                [id, need_to_read, this](const boost::system::error_code &ec, size_t)
-                                {
-                                    if (!ec) start_write(id, need_to_read);
-                                    else return;
-                                    //else close_connection(id);
-                                });
+    connections[id].sock_ptr->async_read_some(buffer(connections[id].buf, BUF_SIZE),
+        [id, this](const boost::system::error_code &ec, size_t received)
+        {
+            if (!received)
+            {
+                m.lock();
+                std::cout << "Server read ended." << std::endl;
+                m.unlock();
+                close_connection(id, const_cast<boost::system::error_code &>(ec));
+                return;
+            }
+            if (ec)
+            {
+                m.lock();
+                std::cerr << "Server reading error: " << ec << std::endl;
+                m.unlock();
+                close_connection(id, const_cast<boost::system::error_code &>(ec));
+                return;
+            }
+            start_write(id, received);
+        });
 };
 
 void echo_server::start_write(size_t id, size_t bytes_write)
 {
     if (!started)
         return;
-    if (!bytes_write)
-    {
-        close_connection(id);
-        return;
-    }
-/*
-    {    
-        std::mutex m;
-        std::lock_guard<std::mutex> lock(m);
-        std::cout << "[connection " << id << ": " << connections[id].buf << ']' << std::endl;
-    }
-*/
+    connections[id].buf[bytes_write] = '\0';
+    m.lock();
     std::cout << "[connection " << id << ": " << connections[id].buf << ']' << std::endl;
+    m.unlock();
     connections[id].sock_ptr->async_write_some(buffer(connections[id].buf, bytes_write),
-                                [id, this](const boost::system::error_code &ec, size_t)
-                                {
-                                    if (!ec) start_read(id);
-                                    else return;
-                                    //else close_connection(id);
-                                });
+        [id, this](const boost::system::error_code &ec, size_t)
+        {
+            if (ec) 
+            {
+                m.lock();
+                std::cerr << "Server writing error: " << ec << std::endl;
+                m.unlock();
+                return; 
+            }
+            start_read(id);
+        });
 };
 
-void echo_server::close_connection(size_t id)
+void echo_server::close_connection(size_t id, boost::system::error_code &ec)
 {
+    connections[id].sock_ptr->close(ec);
     connections.erase(id);
+    m.lock();
     std::cout << "[connection " << id << " closed]" << std::endl;
+    m.unlock();
     if (connections.empty())
         service.stop();
 };
