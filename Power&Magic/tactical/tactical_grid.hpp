@@ -1,8 +1,9 @@
 #include <iostream>
 #include <vector>
 #include <array>
-#include <cstdlib>
-#include "cell.hpp"
+#include <chrono>
+#include <thread>
+#include "tile.hpp"
 #include "unit.hpp"
 
 /*
@@ -55,42 +56,28 @@ class tactical_grid
     std::array<grid_tile, 14*11> battleground;
     std::vector<std::vector<Unit>> sides;
     
-    void pre_generation()
+    void pre_generation(std::array<GLOBAL_RELIEF, 6> & ambient_relief)
     {
         for (int i = 0; i < 11; i++)
         {
             for (int j = 0; j < 14; j++)
             {
-                srand(time(0) + j);
-                int x = rand() % 100;
-                terrain_features feature = static_cast<terrain_features>(x % 10);
-                std::array<std::unique_ptr<tile_neighbour>, 6> neighbours = 
-                                                        {
-                                                         std::unique_ptr<tile_neighbour>(nullptr),
-                                                         std::unique_ptr<tile_neighbour>(nullptr),
-                                                         std::unique_ptr<tile_neighbour>(nullptr),
-                                                         std::unique_ptr<tile_neighbour>(nullptr),
-                                                         std::unique_ptr<tile_neighbour>(nullptr),
-                                                         std::unique_ptr<tile_neighbour>(nullptr)
-                                                        };
+                //srand(time(0));
+                //int x = rand() % 100;
+                //terrain_features feature = static_cast<terrain_features>(x % 10);
+                terrain_features feature = generate_feature(ambient_relief);
+                std::array<int, 6> neighbours = {-1, -1, -1, -1, -1, -1};
                 battleground[14*i + j] = grid_tile(neighbours, i, j, nullptr, feature);
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
         }
     }
 
-    void reset_neighbours(size_t cell, std::vector<size_t> cells_neighbours, std::vector<size_t> neighbours_places)
+    void reset_neighbours(size_t tile, std::vector<size_t> tiles_neighbours, std::vector<size_t> neighbours_places)
     {
         //if (cells_neighbours.size() != neighbours_places.size())
-        for (size_t i = 0; i < cells_neighbours.size(); i++)
-            battleground[cell].reset_neighbour
-                                (
-                                    tile_neighbour
-                                    {
-                                        .tile_number  = cells_neighbours[i], 
-                                        .entrance_fee = terrain_features_prices[static_cast<int>(battleground[cells_neighbours[i]].feature)]
-                                    }, 
-                                    neighbours_places[i]
-                                );
+        for (size_t i = 0; i < tiles_neighbours.size(); i++)
+            battleground[tile].neighbours[neighbours_places[i]] = tiles_neighbours[i];
     }    
 
     void fill_angles()
@@ -139,10 +126,10 @@ class tactical_grid
     }
 
 public:
-    tactical_grid(std::vector<std::vector<Unit>> & sides_):
+    tactical_grid(std::vector<std::vector<Unit>> & sides_, std::array<GLOBAL_RELIEF, 6> & ambient_relief):
     sides(sides_)
     {
-        pre_generation();
+        pre_generation(ambient_relief);
         fill_angles();
         fill_edges();
         fill_middle();
@@ -150,7 +137,7 @@ public:
     
     void draw_battleground()
     {
-        /*
+        ///*
         for (size_t i = 0; i < 11; i++)
         {
             if ( i % 2 == 0 )
@@ -170,7 +157,8 @@ public:
             std::cout << std::endl;
         }
         std::cout << std::endl;
-        */
+        //*/
+        /*
         int i = 0;
         for (auto & tile : battleground)
         {
@@ -178,17 +166,6 @@ public:
             tile.show_neighbours();
             i++;
         }
+        //*/
     }
 };
-
-int main()
-{
-    std::vector<std::vector<Unit>> sides =
-    {
-        {Unit("Unit1", 15, 3, 2, 9, 5, 10, 7, 0)},
-        {Unit("Unit2", 15, 3, 2, 9, 5, 10, 7, 1)}
-    };
-    tactical_grid grid(sides);
-    grid.draw_battleground();
-    return 0;
-}
