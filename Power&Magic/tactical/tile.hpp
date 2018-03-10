@@ -3,11 +3,12 @@
 #include <array>
 #include "terrain_features.hpp"
 
-class grid_obstacle;
+class grid_obstacle {};
 class tactical_grid;
 
 class grid_tile
 {
+public:
     friend class tactical_grid;
     // Neighbour tiles with prices to move there
     std::array<int, 6> neighbours;
@@ -15,16 +16,16 @@ class grid_tile
     double coordinate_Y;
     grid_obstacle *obstacle;
     int entrance_fee;
-    terrain_features feature;
+    TERRAIN_FEATURES feature;
     bool passable;
-public:
+//public:
     grid_tile
     (
-        std::array<int, 6> &neighbours_,
+        std::array<int, 6> & neighbours_,
         double X,
         double Y,
         grid_obstacle *obstacle_,
-        terrain_features feature_
+        TERRAIN_FEATURES feature_
     ):
         neighbours(neighbours_),
         coordinate_X(X),
@@ -33,7 +34,7 @@ public:
         feature(feature_)
     {
         entrance_fee = terrain_features_prices[static_cast<int>(feature)];
-        passable = (!obstacle && feature != terrain_features::WATER)? true : false;
+        passable = (!obstacle && feature != TERRAIN_FEATURES::WATER)? true : false;
     }
 
     grid_tile() {}

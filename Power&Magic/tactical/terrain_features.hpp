@@ -2,9 +2,9 @@
 #include <functional>
 #include <map>
 #include <cstdlib>
-#include "../global/terrain_features.hpp"
+//#include "../global/terrain_features.hpp"
 
-enum terrain_features           {FOREST_HILLS, SAND_HILLS, SNOW_HILLS, GREEN_HILLS, FOREST_PLAIN, SAND_PLAIN, SNOW_PLAIN, GREEN_PLAIN, SWAMP_PLAIN, WATER};
+enum TERRAIN_FEATURES           {FOREST_HILLS, SAND_HILLS, SNOW_HILLS, GREEN_HILLS, FOREST_PLAIN, SAND_PLAIN, SNOW_PLAIN, GREEN_PLAIN, SWAMP_PLAIN, WATER};
 int terrain_features_prices[] = {           3,          3,          4,           2,            2,          2,          3,           1,           3,   100};
 std::function<void (bool)> draw_feature[] =
 {
@@ -80,7 +80,8 @@ std::function<void (bool)> draw_feature[] =
     }
 };
 
-terrain_features generate_feature(std::array<GLOBAL_RELIEF, 6> & ambient_relief)
+/*
+terrain_features generate_feature(std::array<TERRAIN_FEATURES, 6> & ambient_relief)
 {
     std::map<GLOBAL_RELIEF, int> frequencies;
     for (size_t i = 0; i < 6; i++)
@@ -104,3 +105,4 @@ terrain_features generate_feature(std::array<GLOBAL_RELIEF, 6> & ambient_relief)
         left_barier += relief_freq.second;
     }
 }
+*/

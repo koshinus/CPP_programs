@@ -1,8 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <array>
-#include <chrono>
-#include <thread>
+//#include <chrono>
+//#include <thread>
+#include <algorithm>
+#include <random>
 #include "tile.hpp"
 #include "unit.hpp"
 
@@ -56,8 +58,24 @@ class tactical_grid
     std::array<grid_tile, 14*11> battleground;
     std::vector<std::vector<Unit>> sides;
     
-    void pre_generation(std::array<GLOBAL_RELIEF, 6> & ambient_relief)
+    void pre_generation(std::array<TERRAIN_FEATURES, 6> & ambient_relief)
     {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::vector<std::pair<TERRAIN_FEATURES, int>> features_and_frequencies = {std::make_pair(TERRAIN_FEATURES::WATER, 1)};
+        for (size_t i = 0; i < 6; i++)
+        {
+            auto it = find_if(features_and_frequencies.begin(), features_and_frequencies.end(),
+                            [&ambient_relief, i](std::pair<TERRAIN_FEATURES, int> & p){return p.first == ambient_relief[i];});
+            if(it == features_and_frequencies.end())
+                features_and_frequencies.push_back(std::make_pair(ambient_relief[i], 1));
+            else
+                it->second++;
+        }
+        std::vector<int> frequencies;
+        for (size_t i = 0; i < features_and_frequencies.size(); i++)
+            frequencies.push_back(features_and_frequencies[i].second);
+        std::discrete_distribution<> d(frequencies.begin(), frequencies.end());
         for (int i = 0; i < 11; i++)
         {
             for (int j = 0; j < 14; j++)
@@ -65,10 +83,10 @@ class tactical_grid
                 //srand(time(0));
                 //int x = rand() % 100;
                 //terrain_features feature = static_cast<terrain_features>(x % 10);
-                terrain_features feature = generate_feature(ambient_relief);
+                TERRAIN_FEATURES feature = features_and_frequencies[d(gen)].first;
                 std::array<int, 6> neighbours = {-1, -1, -1, -1, -1, -1};
                 battleground[14*i + j] = grid_tile(neighbours, i, j, nullptr, feature);
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                //std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
         }
     }
@@ -126,7 +144,7 @@ class tactical_grid
     }
 
 public:
-    tactical_grid(std::vector<std::vector<Unit>> & sides_, std::array<GLOBAL_RELIEF, 6> & ambient_relief):
+    tactical_grid(std::vector<std::vector<Unit>> & sides_, std::array<TERRAIN_FEATURES, 6> & ambient_relief):
     sides(sides_)
     {
         pre_generation(ambient_relief);
@@ -137,7 +155,7 @@ public:
     
     void draw_battleground()
     {
-        ///*
+        /*
         for (size_t i = 0; i < 11; i++)
         {
             if ( i % 2 == 0 )
@@ -166,6 +184,19 @@ public:
             tile.show_neighbours();
             i++;
         }
+        //*/
+        ///*
+        std::cout << "std::array<int, 6> arr = {-1, -1, -1, -1, -1, -1};" << std::endl
+                  << "std::array<grid_tile, 11*14> battleground = " << std::endl << "{" << std::endl;
+        for (size_t i = 0; i < 11; i++)
+        {
+            for (size_t j = 0; j < 14; j++)
+            {
+                std::cout << "grid_tile(arr, " << i << ", " << j << ", nullptr, TERRAIN_FEATURES::GREEN_PLAIN),";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << "};";
         //*/
     }
 };
