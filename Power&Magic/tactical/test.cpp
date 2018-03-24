@@ -199,10 +199,23 @@ inline double heuristic(int from, int to)
             );
 }
 */
-inline double heuristic(int from, int to)
+double heuristic(int from_tile_num, int to_tile_num)
 {
-    return  std::abs(battleground[from].coordinate_X - battleground[to].coordinate_X) +
-            std::abs(battleground[from].coordinate_Y - battleground[to].coordinate_Y);
+    return (std::abs(battleground[from_tile_num].coordinate_X - battleground[to_tile_num].coordinate_X) +
+            std::abs(battleground[from_tile_num].coordinate_Y - battleground[to_tile_num].coordinate_Y));
+    /*
+    grid_tile & from = battleground[from_tile_num], & to = battleground[to_tile_num];
+    int cube_x_from, cube_y_from, cube_z_from, cube_x_to, cube_y_to, cube_z_to;
+    cube_x_from = int(from.coordinate_Y) - (int(from.coordinate_X) - (int(from.coordinate_X) & 1))/2;
+    cube_z_from = int(from.coordinate_Y);
+    cube_y_from = -cube_x_from - cube_z_from;
+    cube_x_to = int(to.coordinate_Y) - (int(to.coordinate_X) - (int(to.coordinate_X) & 1))/2;
+    cube_z_to = int(to.coordinate_Y);
+    cube_y_to = -cube_x_to - cube_z_to;
+    return  (std::abs(cube_x_from - cube_x_to) +
+             std::abs(cube_y_from - cube_y_to) +
+             std::abs(cube_z_from - cube_z_to))/2;
+    */
 }
 
 ///*
