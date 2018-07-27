@@ -6,7 +6,7 @@ struct datablock
 {
     uint64_t id;
     uint64_t len;
-    char data[];
+    char * data;
 
     datablock(uint64_t id, uint64_t len);
     datablock(datablock & block);

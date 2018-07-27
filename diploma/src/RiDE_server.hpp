@@ -1,33 +1,31 @@
 #pragma once
 
-#include <uv.h>
-#include <cstring>
-#include <cstdint>
-#include <ctime>
 #include "datablock.hpp"
 #include "logger.hpp"
+#include <map>
+#include <boost/asio.hpp>
+#include <algorithm>
 
 class RiDE_server
 {
-    datablock *   * datas;
-    uint64_t        datas_capacity;
-    uint64_t        datas_length;
-    uv_loop_t     * event_loop;
-    uv_udp_t        recv_socket;
-    RiDE_logger   * logger;
-    bool            started;
-    void datas_configure();
-    void datas_reset();
-    void on_alloc(uv_handle_t* client, size_t suggested_size, uv_buf_t* buf);
-    void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const struct sockaddr* addr, unsigned flags);
-    void on_send(uv_udp_send_t* req, int status);
-    void transmition(uint32_t addr, uint16_t port, uint64_t id, uint64_t offset, uint64_t length);
-    void placing(uint64_t id, uint64_t offset, uint64_t length, char * data_ptr);
-    void allocation(uint64_t id, uint64_t length);
-    void parsing_buffer(const char * buf);
 public:
-    RiDE_server(RiDE_logger * logger);
-    void start();
-    void stop();
-    bool is_started();
+    RiDE_server(boost::asio::io_service & io_service, RiDE_logger & logger);
+    void stop_receive();
+    bool started() const;
+
+private:
+
+    void start_receive();
+    bool validate_checksum(char * buf, size_t bytes_to_check);
+    void parse_buffer(char * buf, size_t bytes_received);
+    void placing(uint64_t id, uint64_t block_len, uint64_t offset, uint64_t data_len, char * data_ptr);
+    void transmition(uint32_t addr, uint16_t port, uint64_t id, uint64_t offset, uint64_t length);
+
+    boost::asio::ip::udp::socket                        m_socket;
+    RiDE_logger &                                       m_logger;
+    bool                                                m_started = false;
+    std::map<uint64_t, std::vector<int8_t>>             m_datas;
+    const int                                           BUF_SIZE = 4096;
+    char                                                m_recv_buf[4096];
+    char                                                m_send_buf[4096];
 };

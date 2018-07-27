@@ -2,7 +2,8 @@
 
 #include <cstdio>
 #include <cstdint>
-#include "utilities.hpp"
+#include <ctime>
+#include "../common/utilities.hpp"
 
 class RiDE_logger
 {
@@ -15,11 +16,6 @@ public:
     void open();
     void close();
     void reopen();
-    void log(ERROR error_type);
+    void log(ERROR error_type, const char * info);
     bool time_to_close();
 };
-
-void open_log_file(RiDE_logger * log);
-void close_log_file(RiDE_logger * log);
-void reopen_log_file(RiDE_logger * log);
-void log_an_error(RiDE_logger * log, ERROR error_type);

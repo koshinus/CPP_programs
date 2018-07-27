@@ -1,5 +1,19 @@
 #include "logger.hpp"
 
+
+const char * error_messages[] =
+{
+    "ALL_CORRECT: everything is fine.\n",
+    "UNKNOWN_COMMAND: wrong first symbol in received message.\n",
+    "INCORRECT_ID: please check the datablock id.\n",
+    "OUT_OF_MEMORY: system haven't enough memory to allocate this datablock.\n",
+    "OUT_OF_RANGE: please check offset and data length of delivered message.\n",
+    "NO_DATA_RECEIVED: received message have no data.\n",
+    "NO_DATA_SEND: sending message have no data.\n",
+    "RECEIVING_ERROR: ",
+    "SENDING_ERROR: "
+};
+
 void RiDE_logger::open()
 {
     char filename[40];
@@ -19,11 +33,11 @@ void RiDE_logger::close()
 
 void RiDE_logger::reopen()
 {
-    log->close(log);
-    log->open(log);
+    close();
+    open();
 }
 
-void RiDE_logger::log(ERROR error_type)
+void RiDE_logger::log(ERROR error_type, const char * info)
 {
     char time_string[20];
     struct tm *timenow;
@@ -44,9 +58,11 @@ void RiDE_logger::log(ERROR error_type)
         reopen();
     current_log_size += current_err_msg_size;
     fprintf(log_file, "ERROR| %s of type %s", time_string, error_messages[(int)error_type]);
+    if (info)
+        fprintf(log_file, "%s\n", info);
 }
 
 bool RiDE_logger::time_to_close()
 {
-    return clock() - log_creation_time >= MAX_LOG_TIME;
+    return std::uint64_t(clock() - log_creation_time) >= MAX_LOG_TIME;
 }

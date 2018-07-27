@@ -1,207 +1,142 @@
 #include "RiDE_server.hpp"
+#include <boost/crc.hpp>
+#include <iostream>
 
-RiDE_server::RiDE_server(RiDE_logger * logger_):
-    logger(logger_)
+RiDE_server::RiDE_server(boost::asio::io_service & io_service, RiDE_logger & logger):
+    m_socket(io_service, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 6868)),
+    m_logger(logger),
+    m_started(true)
 {
+    m_socket.set_option(boost::asio::socket_base::reuse_address(true));
+    start_receive();
 }
 
-void RiDE_server::datas_configure()
+bool RiDE_server::started() const
 {
-    datas_capacity = 2;
-    datas_length = 0;
-    datas = new (datablock *)[datas_capacity];
+    return m_started;
 }
 
-void RiDE_server::datas_reset(RiDE_server * server)
+void RiDE_server::stop_receive()
 {
-    for(uint64_t i = 0; i < datas_length; i++)
-        delete datas[i];
-    delete [] datas;
+    m_socket.get_io_service().stop();
 }
 
-void RiDE_server::on_alloc(uv_handle_t* client, size_t suggested_size, uv_buf_t* buf)
+void RiDE_server::start_receive()
 {
-    buf->base = new char[suggested_size + 1];
-    buf->len = suggested_size;
-    buf->base[suggested_size] = '\0';
+    if (!m_started)
+        m_started = true;
+    if (m_socket.get_io_service().stopped())
+        m_socket.get_io_service().reset();
+    m_socket.async_receive(boost::asio::buffer(m_recv_buf, BUF_SIZE),
+            [this](const boost::system::error_code & e, size_t received)
+            {
+                if (!received)
+                    m_logger.log(NO_DATA_RECEIVED, nullptr);
+                if (e)
+                    m_logger.log(RECEIVING_ERROR, e.message().c_str());
+                parse_buffer(m_recv_buf, received);
+            });
 }
 
-void RiDE_server::on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const struct sockaddr* addr, unsigned flags)
+void RiDE_server::placing(uint64_t id, uint64_t block_len, uint64_t offset, uint64_t data_len, char * data_ptr)
 {
-    if (nread > 0)
-        parsing_buffer(rcvbuf->base);
-    else
-        logger->log(NO_DATA_RECEIVED);
-    delete [] rcvbuf->base;
-}
-
-void RiDE_server::on_send(uv_udp_send_t* req, int status)
-{
-
-}
-
-void RiDE_server::start()
-{
-    datas_configure();
-    started = true;
-    struct sockaddr_in addr;
-    event_loop = uv_default_loop();
-    uv_udp_init(event_loop, &recv_socket);
-    uv_ip4_addr("127.0.0.1", 11000, &addr);
-    uv_udp_bind(&recv_socket, (const struct sockaddr *)&addr, UV_UDP_REUSEADDR);
-    uv_udp_recv_start(&recv_socket, on_alloc, on_recv);
-    uv_run(event_loop, UV_RUN_DEFAULT);
-}
-
-void RiDE_server::stop()
-{
-    uv_udp_recv_stop(&recv_socket);
-    started = false;
-    datas_reset(server);
-}
-
-bool RiDE_server::is_started()
-{
-    return started;
-}
-
-void/*ERROR*/ RiDE_server::transmition(uint32_t addr, uint16_t port, uint64_t id, uint64_t offset, uint64_t length)
-{
-    uv_udp_send_t send_socket;
-    struct in_addr ip_addr;
-    ip_addr.s_addr = addr;
-    struct sockaddr_in send_addr;
-    
-    uv_udp_init(event_loop, &send_socket);
-    uv_ip4_addr(inet_ntoa(ip_addr), port, &send_addr);
-    uv_udp_bind(&send_socket, (const struct sockaddr *)&send_addr, 0);
-    uv_udp_set_broadcast(&send_socket, 1);
-    uv_buf_t * send_buf;
-    for (uint64_t i = 0; i < datas_length; i++)
+    auto it = m_datas.find(id);
+    if (it != m_datas.end())
     {
-        if (datas[i]->id == id)
-        {
-            send_buf->base = new char[length];
-            strncpy(send_buf->base, datas[id]->data + offset, length);
-            send_buf->len = length;
-            uv_udp_send(&send_socket, &recv_socket, (const uv_buf_t *)send_buf, 1, (const struct sockaddr *)&send_addr, server->on_send);
-            delete [] send_buf->base;
-            return;
-        }
+        if(it->second.size() < offset + data_len)
+            m_logger.log(OUT_OF_RANGE, nullptr);
         else
-            logger->log(INCORRECT_ID);
+            std::copy(data_ptr, data_ptr + data_len, it->second.data() + offset);
     }
-    //return ALL_CORRECT;
-}
-
-void/*ERROR*/ RiDE_server::placing(uint64_t id, uint64_t offset, uint64_t length, char * data_ptr)
-{
-    for(uint64_t i = 0; i < datas_length; i++)
-        if(datas[i]->id == id)
-        {
-            if(datas[i]->len < offset + length)
-            {
-                logger->log(OUT_OF_RANGE);
-                return;
-                //return OUT_OF_RANGE;
-            }
-            else
-            {
-                strncpy(datas[i]->data + offset, data_ptr, length);
-                return;
-                //return ALL_CORRECT;
-            }
-        }
-    logger->log(INCORRECT_ID);
-    return;
-    //return INCORRECT_ID;
-}
-
-void/*ERROR*/ RiDE_server::allocation(uint64_t id, uint64_t length)
-{
-    for(uint64_t i = 0; i < datas_length; i++)
-        if(datas[i]->id == id)
-        {
-            logger->log(ALREADY_ALLOCATED);
-            return;
-            //return ALREADY_ALLOCATED;
-        }
-    datablock * block = new datablock(id, length);
-    // datablock_alloc and malloc/realloc return NULL
-    // if system haven't enough memory for allocation
-    if (!block)
+    else
     {
-        logger->log(OUT_OF_MEMORY);
-        return;
-        //return OUT_OF_MEMORY;
+        if (block_len < offset + data_len)
+            m_logger.log(OUT_OF_RANGE, nullptr);
+        m_datas.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(block_len));
+        std::copy(data_ptr, data_ptr + data_len, m_datas[id].begin() + offset);
     }
-    if(datas_length == datas_capacity)
-    {
-        datas_capacity *= 2;
-        datablock ** new_datas = new (datablock **)[datas_capacity];
-        if(!new_datas)
-        {
-            logger->log(OUT_OF_MEMORY);
-            return;
-            //return OUT_OF_MEMORY;
-        }
-        for(uint64_t i = 0; i < datas_length; i++)
-            new_datas[i] = datas[i];
-        delete [] datas;
-        datas = new_datas;
-    }
-    datas[datas_length] = block;
-    datas_length++;
-    //return ALL_CORRECT;
+    start_receive();
 }
 
-void/*ERROR*/ RiDE_server::parsing_buffer(const char * buf)
+void RiDE_server::transmition(std::uint32_t addr, std::uint16_t port, std::uint64_t id, std::uint64_t offset, std::uint64_t length)
 {
-    uint64_t id, offset, length;
-    uint32_t host_addr;
-    uint16_t host_port;
+    namespace asio_ip = boost::asio::ip;
+    asio_ip::udp::socket send_sock(m_socket.get_io_service());
+    send_sock.open(boost::asio::ip::udp::v4());
+    send_sock.set_option(boost::asio::socket_base::broadcast(true));
+    asio_ip::udp::endpoint dest(asio_ip::address::from_string(inet_ntoa((in_addr){.s_addr = htobe32(addr)})), port);
+    auto it = m_datas.find(id);
+    if (it == m_datas.end())
+        m_logger.log(INCORRECT_ID, nullptr);
+    else
+    {
+        if (it->second.size() < offset + length)
+            m_logger.log(OUT_OF_RANGE, nullptr);
+        else
+        {
+            std::cout << it->second.size() << '-' << it->second.capacity() << '-' << it->second.data() << std::endl;
+            fill_buffer(m_send_buf, 'p', id, it->second.capacity(), offset, length, 0, 0, reinterpret_cast<char *>(it->second.data()));
+            std::uint64_t full_offset = sizeof(char) + sizeof(id)
+                    + sizeof(it->second.capacity()) + sizeof(offset) + sizeof(length) + length;
+            send_sock.async_send_to(boost::asio::buffer(m_send_buf, full_offset), dest,
+                                [this, &dest](const boost::system::error_code & e, size_t bytes_transfered)
+                                {
+                                    if (!bytes_transfered)
+                                        m_logger.log(NO_DATA_SEND, nullptr);
+                                    if (e)
+                                        m_logger.log(SENDING_ERROR, e.message().c_str());
+                                    start_receive();
+                                });
+        }
+    }
+    start_receive();
+}
+
+bool RiDE_server::validate_checksum(char *buf, size_t bytes_received)
+{
+    boost::crc_32_type result;
+    boost::crc_32_type::value_type incoming_checksum = ((boost::crc_32_type::value_type *)buf)[0];
+    result.process_bytes(buf + sizeof(boost::crc_32_type::value_type), bytes_received);
+    return result.checksum() == incoming_checksum;
+}
+
+void/*ERROR*/ RiDE_server::parse_buffer(char * buf, size_t bytes_received)
+{
+    std::uint64_t id, offset, data_len, block_len, full_offset;
+    std::uint32_t remote_addr;
+    std::uint16_t remote_port;
     // Check the first byte in received buffer
-    switch(*buf)
+    if (*buf == 'p')
     {
-        // Command "beXtoh( ((uintX_t *)buf)[] )" interprets next X bits
-        // as unsigned number and convert it to endian of the calling machine
-        case 'a':
-        {
-            buf++; // Skip 'a'
-            id        = be64toh( ((uint64_t *)buf)[0] );
-            length    = be64toh( ((uint64_t *)buf)[1] );
-            allocation(id, length);
-            //return allocate(id, length);
-            break;
-        }
-        case 'p':
-        {
-            buf++; // Skip 'p'
-            id        = be64toh( ((uint64_t *)buf)[0] );
-            offset    = be64toh( ((uint64_t *)buf)[1] );
-            length    = be64toh( ((uint64_t *)buf)[2] );
-            char * data_ptr = (char *)(buf + sizeof(id) + sizeof(offset) + sizeof(length));
-            placing(id, offset, length, data_ptr);
-            //return place(server, id, offset, length, data_ptr);
-            break;
-        }
-        case 't':
-        {
-            buf++; // Skip 't'
-            host_addr = be32toh( ((uint32_t *)buf)[0] );
-            buf += sizeof(host_addr); // Skip "host address"-bytes in buffer
-            host_port = be16toh( ((uint16_t *)buf)[0] );
-            buf += sizeof(host_port); // Skip "host port"-bytes in buffer
-            id        = be64toh( ((uint64_t *)buf)[0] );
-            offset    = be64toh( ((uint64_t *)buf)[1] );
-            length    = be64toh( ((uint64_t *)buf)[2] );
-            transmition(host_addr, host_port, id, offset, length);
-            //return transmit(host_addr, host_port, id, offset, length);
-            break;
-        }
-        default :
-            logger->log(UNKNOWN_COMMAND);
-            //return UNKNOWN_COMMAND;
-            break;
+        buf++; // Skip 'p'
+        id          = ((uint64_t *)buf)[0];
+        block_len   = ((uint64_t *)buf)[1];
+        offset      = ((uint64_t *)buf)[2];
+        data_len    = ((uint64_t *)buf)[3];
+        std::cout << id << '-' << block_len << '-' << offset << '-' << data_len << std::endl;
+        full_offset = sizeof(id) + sizeof(offset) + sizeof(data_len) + sizeof(block_len);
+        if (bytes_received < full_offset + data_len + sizeof(char))
+            m_logger.log(OUT_OF_RANGE, nullptr);
+        char * data_ptr = (char *)(buf + full_offset);
+        placing(id, block_len, offset, data_len, data_ptr);
     }
+    else if (*buf == 't')
+    {
+        buf++; // Skip 't'
+        remote_addr = ((uint32_t *)buf)[0];
+        buf += sizeof(remote_addr); // Skip "remote machine address"-bytes in buffer
+        remote_port = ((uint16_t *)buf)[0];
+        buf += sizeof(remote_port); // Skip "remote machine port"-bytes in buffer
+        id        = ((uint64_t *)buf)[0];
+        offset    = ((uint64_t *)buf)[1];
+        data_len  = ((uint64_t *)buf)[2];
+        std::cout << id << '-' << offset << '-' << data_len << '-' << remote_addr << '-' << remote_port << std::endl;
+        full_offset = sizeof(id) + sizeof(offset) + sizeof(data_len) +
+                        sizeof(remote_addr) + sizeof(remote_port);
+        if (bytes_received < full_offset + sizeof(char))
+            m_logger.log(OUT_OF_RANGE, nullptr);
+        transmition(remote_addr, remote_port, id, offset, data_len);
+    }
+    else
+        m_logger.log(UNKNOWN_COMMAND, nullptr);
 }

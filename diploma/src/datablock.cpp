@@ -2,7 +2,7 @@
 
 datablock::datablock(uint64_t _id, uint64_t _len):
     id(_id),
-    len(_len),
+    len(_len)
 {
     data = new char[len];
 }
@@ -14,7 +14,7 @@ datablock::datablock(datablock & other):
     data = new char[len];
 }
 
-datablock::datablock & operator=(datablock & other)
+datablock & datablock::operator=(datablock & other)
 {
     if (this == &other)
         return *this;
