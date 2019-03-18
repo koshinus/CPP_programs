@@ -11,9 +11,10 @@ class grid_tile
 public:
     friend class tactical_grid;
     // Neighbour tiles with prices to move there
-    std::array<int, 6> neighbours;
-    double coordinate_X;
-    double coordinate_Y;
+    std::array<grid_tile *, 6> neighbours;
+    int X;
+    int Y;
+    int Z;
     grid_obstacle *obstacle;
     int entrance_fee;
     TERRAIN_FEATURES feature;
@@ -22,17 +23,21 @@ public:
     grid_tile
     (
         std::array<int, 6> & neighbours_,
-        double X,
-        double Y,
+        int X_,
+        int Y_,
+        int Z_,
         grid_obstacle *obstacle_,
         TERRAIN_FEATURES feature_
     ):
         neighbours(neighbours_),
-        coordinate_X(X),
-        coordinate_Y(Y),
+        X(X_),
+        Y(Y_),
+        Z(Z_),
         obstacle(obstacle_),
         feature(feature_)
     {
+        if (X + Y + Z != 0)
+            throw "Sum of coordinates must be zero!";
         entrance_fee = terrain_features_prices[static_cast<int>(feature)];
         passable = (!obstacle && feature != TERRAIN_FEATURES::WATER)? true : false;
     }
