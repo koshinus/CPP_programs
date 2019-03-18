@@ -2,15 +2,15 @@
 #include "server.hpp"
 
 echo_server::echo_server(io_service &service) :
-    started(false),
-    connection_id(0),
-    endp(ip::tcp::v4(), 2001),
-    acc(service, endp),
-    service(service)
-    {
-        acc.set_option(ip::tcp::acceptor::reuse_address(true));
-        start_accept();
-    };
+started(false),
+connection_id(0),
+endp(ip::tcp::v4(), 2001),
+acc(service, endp),
+service(service)
+{
+    acc.set_option(ip::tcp::acceptor::reuse_address(true));
+    start_accept();
+}
 
 void echo_server::start_accept()
 {
@@ -33,11 +33,10 @@ void echo_server::start_accept()
                 start_read(connection_id);
                 start_accept();
             });
-};
+}
 
 void echo_server::start_read(size_t id)
 {
-    
     if (!started)
         return;
     connections[id].sock_ptr->async_read_some(buffer(connections[id].buf, BUF_SIZE),
@@ -61,7 +60,7 @@ void echo_server::start_read(size_t id)
             }
             start_write(id, received);
         });
-};
+}
 
 void echo_server::start_write(size_t id, size_t bytes_write)
 {
@@ -83,7 +82,7 @@ void echo_server::start_write(size_t id, size_t bytes_write)
             }
             start_read(id);
         });
-};
+}
 
 void echo_server::close_connection(size_t id, boost::system::error_code &ec)
 {
@@ -94,11 +93,11 @@ void echo_server::close_connection(size_t id, boost::system::error_code &ec)
     m.unlock();
     if (connections.empty())
         service.stop();
-};
+}
 
 void echo_server::stop_accept()
 {
     if (started) started = false;
     connections.clear();
     service.stop();
-};
+}
