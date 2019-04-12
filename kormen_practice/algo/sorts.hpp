@@ -4,58 +4,64 @@
 
 #pragma once
 
-#include <vector>
+#include <abstract_sorter.hpp>
 #include <iostream>
 
-template <typename T>
-void bubble_sort(std::vector<T> &vec)
+template <typename T> class bubble_sorter: public abstract_sorter<T>
 {
-    for(typename std::vector<T>::iterator it1 = vec.begin(); it1 <= std::prev(vec.end()); it1++)
+    bubble_sorter() = default;
+    void sort(TVec & vec) override
     {
-        for(typename std::vector<T>::iterator it2 = std::prev(vec.end()); it2 >= std::next(it1); it2--)
-            if(*it2 < *it1)
-                std::swap(*it1, *it2);/*
-        std::cout << "[";
-        for( auto & elem : vec )
-            std::cout << elem << " ";
-        std::cout << "\b]\n";*/
-    }
-}
-
-template <typename T>
-void insertion_sort(std::vector<T> &vec)
-{
-    for(typename std::vector<T>::iterator it1 = vec.begin() + 1; it1 != vec.end(); it1++)
-    {
-        T elem = *it1;
-        typename std::vector<T>::iterator it2 = it1 - 1;
-        while(it2 >= vec.begin() && elem < *it2)
+        for(Iter it1 = vec.begin(); it1 <= std::prev(vec.end()); it1++)
         {
-            *(it2 + 1) = *it2;
-            it2--;
+            for(Iter it2 = std::prev(vec.end()); it2 >= std::next(it1); it2--)
+                if(*it2 < *it1)
+                    std::swap(*it1, *it2);/*
+            std::cout << "[";
+            for( auto & elem : vec )
+                std::cout << elem << " ";
+            std::cout << "\b]\n";*/
         }
-        *(it2+1) = elem;
     }
-}
+};
 
-template <typename T>
-void selection_sort(std::vector<T> &vec)
+template <typename T> class insertion_sorter: public abstract_sorter<T>
 {
-    for(typename std::vector<T>::iterator it1 = vec.begin(); it1 != vec.end() - 1; it1++)
+    insertion_sorter() = default;
+    void sort(TVec & vec) override
     {
-        typename std::vector<T>::iterator min_pos = it1;
-        for (typename std::vector<T>::iterator it2 = it1 + 1; it2 != vec.end(); it2++)
-            if(*it2 < *min_pos) min_pos = it2;
-        std::swap(*it1, *min_pos);
+        for(Iter it1 = vec.begin() + 1; it1 != vec.end(); it1++)
+        {
+            T elem = *it1;
+            Iter it2 = it1 - 1;
+            while(it2 >= vec.begin() && elem < *it2)
+            {
+                *(it2 + 1) = *it2;
+                it2--;
+            }
+            *(it2+1) = elem;
+        }
     }
-}
+};
 
-template<typename T>
-class merge_sorter
+template <typename T> class selection_sorter: public abstract_sorter<T>
 {
-    using TVec = typename std::vector<T>;
-    using Iter = typename TVec::iterator;
+    selection_sorter() = default;
+    void sort(TVec & vec) override
+    {
+        for(Iter it1 = vec.begin(); it1 != vec.end() - 1; it1++)
+        {
+            Iter min_pos = it1;
+            for (Iter it2 = it1 + 1; it2 != vec.end(); it2++)
+                if(*it2 < *min_pos)
+                    min_pos = it2;
+            std::swap(*it1, *min_pos);
+        }
+    }
+};
 
+template<typename T> class merge_sorter: public abstract_sorter<T>
+{
     void merge_step(Iter l, Iter r)
     {
         auto l_r_distance = std::distance(l, r);
@@ -72,10 +78,10 @@ class merge_sorter
     {
         auto l_r_distance = std::distance(l,r);
         if(l_r_distance < merge_barier)
-            for(typename std::vector<T>::iterator it1 = l + 1; it1 != r; it1++)
+            for(Iter it1 = l + 1; it1 != r; it1++)
             {
                 T elem = *it1;
-                typename std::vector<T>::iterator it2 = it1 - 1;
+                Iter it2 = it1 - 1;
                 while(it2 >= vec.begin() && elem < *it2)
                 {
                     *(it2 + 1) = *it2;
@@ -97,7 +103,7 @@ class merge_sorter
         std::vector<T> L, R;
         L.insert(L.begin(), l, mid);
         R.insert(R.begin(), mid, r);
-        typename std::vector<T>::iterator it = l, it1 = L.begin(), it2 = R.begin();
+        Iter it = l, it1 = L.begin(), it2 = R.begin();
         for(; it1 != L.end() && it2 != R.end(); it++)
         {
             if(*it1 <= *it2)
@@ -131,7 +137,7 @@ class merge_sorter
 public:
     merge_sorter(): merge_barier(30) {}
 
-    merge_sorter(std::size_t barier): merge_barier( barier ) {}
+    merge_sorter(std::size_t barier): merge_barier(barier) {}
 
     void merge_sort(TVec &vec)
     {
