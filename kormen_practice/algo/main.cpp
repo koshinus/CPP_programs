@@ -2,11 +2,11 @@
 
 int main()
 {
-    //bubble_sort_test();
-    //insertion_sort_test();
-    //selection_sort_test();
-    //merge_sort_test();
-    //enchanted_merge_sort_test();
+    bubble_sort_test();
+    insertion_sort_test();
+    selection_sort_test();
+    merge_sort_test();
+    enchanted_merge_sort_test(40);
     //linear_search_test();
     //binary_search_test();
     //max_subarray_search_test();

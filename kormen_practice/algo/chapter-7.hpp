@@ -10,12 +10,13 @@
 #include <functional>
 #include <cmath>
 #include <map>
+#include "abstract_sorter.hpp"
 
 //TODO: debug optimized and hoare partitions - some problem with algorithm
 enum class separator_type { REGULAR , OPTIMIZED, HOARE };
 
 template<typename T>
-class quick_sorter
+class quick_sorter: public abstract_sorter<T>
 {
 private:
 //public:
@@ -85,7 +86,7 @@ private:
         }
         sort_iter new_base = std::next(i);
         std::swap(*new_base, *right);
-        return all_elements_same ? left + std::distance(left, right)/2 : new_base;
+        return all_elements_same ? compute_middle(left, right) : new_base;
     }
 
     sort_iter hoare_partition(sort_iter left, sort_iter right)
@@ -160,9 +161,9 @@ public:
 
     quick_sorter(comparator other, separator_type sep_): obj_comparator(other), sep(sep_){}
 
-    void quick_sort(std::vector<T> & vec)
+    void sort(std::vector<T> & vec)
     {
-        vector_begin = vec.begin();
+        this->vbegin = vec.begin();
         quick_sort_step(vec.begin(), std::prev(vec.end()));
     }
 

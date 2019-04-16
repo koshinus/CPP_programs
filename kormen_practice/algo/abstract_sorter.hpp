@@ -5,6 +5,7 @@
 #pragma once
 
 #include <vector>
+#include <cmath>
 
 template<typename T>
 class abstract_sorter

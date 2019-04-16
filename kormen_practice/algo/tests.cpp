@@ -19,7 +19,8 @@ void bubble_sort_test()
     for (int elem : vec)
         std::cout << elem << " ";
     std::cout << "\b]\n";
-    bubble_sort<int>(vec);
+    bubble_sorter<int> sorter;
+    sorter.sort(vec);
     std::cout << "Sorted array: [";
     for (int elem : vec)
         std::cout << elem << " ";
@@ -35,7 +36,8 @@ void insertion_sort_test()
     for (int elem : vec)
         std::cout << elem << " ";
     std::cout << "\b]\n";
-    insertion_sort<int>(vec);
+    insertion_sorter<int> sorter;
+    sorter.sort(vec);
     std::cout << "Sorted array: [";
     for (int elem : vec)
         std::cout << elem << " ";
@@ -51,7 +53,8 @@ void selection_sort_test()
     for (int elem : vec)
         std::cout << elem << " ";
     std::cout << "\b]\n";
-    selection_sort<int>(vec);
+    selection_sorter<int> sorter;
+    sorter.sort(vec);
     std::cout << "Sorted array: [";
     for (int elem : vec)
         std::cout << elem << " ";
@@ -68,7 +71,7 @@ void merge_sort_test()
         std::cout << elem << " ";
     std::cout << "\b]\n";
     merge_sorter<int> sorter;
-    sorter.merge_sort(vec);
+    sorter.sort(vec);
     std::cout << "Sorted array: [";
     for (int elem : vec)
         std::cout << elem << " ";
@@ -104,7 +107,7 @@ void quick_sort_test()
     std::cout << "\b]\n";
     quick_sorter<int> sorter;
     //quick_sorter<int> sorter([](int & left_val, int & right_val){return left_val >= right_val;});
-    sorter.quick_sort(vec);
+    sorter.sort(vec);
     std::cout << "Sorted array: [";
     for (int elem : vec)
         std::cout << elem << " ";
@@ -120,8 +123,8 @@ void enchanted_merge_sort_test(int sorted_size)
     for (int elem : vec)
         std::cout << elem << " ";
     std::cout << "\b]\n";
-    merge_sorter<int> sorter(sorted_size);
-    sorter.enchanted_merge_sort(vec);
+    merge_sorter<int> sorter(sorted_size, true);
+    sorter.sort(vec);
     std::cout << "Sorted array: [";
     for (int elem : vec)
         std::cout << elem << " ";
