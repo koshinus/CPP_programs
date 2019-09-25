@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <iostream>
+#include <omp.h>
 #include "tests.hpp"
 #include "searches.hpp"
 #include "sorts.hpp"
@@ -184,38 +185,47 @@ void max_subarray_search_test()
     //std::vector<int64_t> vec{100, 113, 110, 85, 105, 102, 86, 63, 81, 101, 94, 106, 101, 79, 94, 90, 97};
     //std::vector<int64_t> vec{-2,-4,-9,-8};
     // Wrong left bound for recursive algorithm
-    std::vector<int64_t> vec{98, 73, 114, 110, 80, 97, 73, 127, 118, 93};
-    //std::vector<int64_t> vec = generate_random_array(10);
+    //std::vector<int64_t> vec{98, 73, 114, 110, 80, 97, 73, 127, 118, 93};
+    //std::vector<int64_t> vec{98, 74, 114, 110, 80, 97, 74, 127, 118, 93};
+    double start_time, end_time;
+    std::vector<int64_t> vec = generate_random_array(45);
     std::cout << "Given array: [";
     for (int64_t elem : vec)
         std::cout << elem << " ";
     std::cout << "\b]\n";
-    max_subarray_searcher searcher(30);
+    max_subarray_searcher searcher(40);
+    start_time = omp_get_wtime();
     auto tup = searcher.find_max_subarray_brute_force(vec);
+    end_time = omp_get_wtime();
     std::cout << "Brute force: "
               << std::distance(vec.begin(), std::get<0>(tup)) << ' '
               << std::distance(vec.begin(), std::get<1>(tup)) << ' '
-              << std::get<2>(tup) << '\n';
+              << std::get<2>(tup) << ", time: " << end_time - start_time << '\n';
+    start_time = omp_get_wtime();
     tup = searcher.find_max_subarray_recursively(vec);
+    end_time = omp_get_wtime();
     std::cout << "Recursive: "
               << std::distance(vec.begin(), std::get<0>(tup)) << ' '
               << std::distance(vec.begin(), std::get<1>(tup)) << ' '
-              << std::get<2>(tup) << '\n';
-
+              << std::get<2>(tup) << ", time: " << end_time - start_time << '\n';
+    start_time = omp_get_wtime();
     tup = searcher.find_max_subarray_recursively_enchanted(vec);
+    end_time = omp_get_wtime();
     std::cout << "Enchanted recursive: "
               << std::distance(vec.begin(), std::get<0>(tup)) << ' '
               << std::distance(vec.begin(), std::get<1>(tup)) << ' '
-              << std::get<2>(tup) << '\n';
+              << std::get<2>(tup) << ", time: " << end_time - start_time << '\n';
     /*
     auto tup1 = searcher.fmsr(vec);
     std::cout << std::get<0>(tup1) << ' '
               << std::get<1>(tup1) << ' '
               << std::get<2>(tup1) << '\n';*/
+    start_time = omp_get_wtime();
     tup = searcher.kadane_max_subarray_search(vec);
+    end_time = omp_get_wtime();
     std::cout << "Kadane's: "
               << std::distance(vec.begin(), std::get<0>(tup)) << ' '
               << std::distance(vec.begin(), std::get<1>(tup)) << ' '
-              << std::get<2>(tup) << '\n';
+              << std::get<2>(tup) << ", time: " << end_time - start_time << '\n';
     std::cout << "[MAX SUBARRAY SEARCH].....end\n";
 }
