@@ -188,7 +188,7 @@ void max_subarray_search_test()
     //std::vector<int64_t> vec{98, 73, 114, 110, 80, 97, 73, 127, 118, 93};
     //std::vector<int64_t> vec{98, 74, 114, 110, 80, 97, 74, 127, 118, 93};
     double start_time, end_time;
-    std::vector<int64_t> vec = generate_random_array(45);
+    std::vector<int64_t> vec = generate_random_array(10);
     std::cout << "Given array: [";
     for (int64_t elem : vec)
         std::cout << elem << " ";

@@ -16,7 +16,7 @@ std::vector<int64_t> generate_random_array(size_t arr_size)
     std::random_device rnd_device;
     // Specify the engine and distribution.
     std::mt19937 mersenne_engine {rnd_device()};  // Generates random integers
-    std::normal_distribution<> dist {100, 30};
+    std::normal_distribution<> dist {-50, 30};
 
     auto gen = [&dist, &mersenne_engine]() { return dist(mersenne_engine); };
 
