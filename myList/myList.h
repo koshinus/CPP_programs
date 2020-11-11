@@ -18,7 +18,7 @@ public:
 	singleLinkedList() { top = NULL; size = 0; };
 	bool is_empty() const { return size == 0; };
 	unsigned long list_size() { return size; };
-	virtual void show();										//выводим список
+	virtual void show();								//выводим список
 	virtual void add_elem(const T &elem);				//добавл€ем элемент
 	virtual void del_elem();							//удал€ем элемент
 	virtual void reverse();								//разворачиваем список
